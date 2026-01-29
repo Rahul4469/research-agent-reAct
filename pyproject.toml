@@ -6,5 +6,72 @@ readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
     "anthropic>=0.76.0",
+    "beautifulsoup4>=4.14.3",
+    "httpx>=0.28.1",
+    "lxml>=6.0.2",
+    "pydantic>=2.12.5",
     "python-dotenv>=1.2.1",
 ]
+
+# Development dependencies - only needed when developing
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-asyncio>=0.24.0",
+    "pytest-xdist>=3.5.0",    # Parallel test execution
+    "ruff>=0.8.0",            # Linting & formatting
+    "mypy>=1.13.0",           # Type checking
+]
+
+# Tell uv/pip how to build this project
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+# Configure hatchling to find our source code
+[tool.hatch.build.targets.wheel]
+packages = ["src/research_agent"]
+
+# Ruff configs (Linting & Formatting)----------------------------
+[tool.ruff]
+# Same line length as Black (industry standard)
+line-length = 88
+# Target Python 3.11+ features
+target-version = "py311"
+# Where to find source code
+src = ["src"]
+
+[tool.ruff.lint]
+select = [
+    "E",      # pycodestyle errors (syntax issues)
+    "F",      # pyflakes (undefined names, unused imports)
+    "I",      # isort (import sorting)
+    "UP",     # pyupgrade (use modern Python syntax)
+    "B",      # flake8-bugbear (common bugs)
+    "SIM",    # flake8-simplify (simplifiable code)
+    "T20",    # flake8-print (catch debug prints)
+    "ASYNC",  # flake8-async (async best practices)
+]
+# Ignore certain rules in specific files
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["T20"]  # Allow print in tests
+
+# PYTEST CONFIGURATION ----------------------------------------------
+[tool.pytest.ini_options]
+# Enable async test support
+asyncio_mode = "auto"
+# Default test discovery paths
+testpaths = ["tests"]
+# Show extra test summary info
+addopts = "-v --tb=short"
+
+# MYPY CONFIGURATION (Type Checking) ----------------------------------
+[tool.mypy]
+python_version = "3.11"
+strict = true                    # Enable all strict checks
+warn_return_any = true
+warn_unused_ignores = true
+# Ignore missing type stubs for these packages
+[[tool.mypy.overrides]]
+module = ["bs4.*", "lxml.*"]
+ignore_missing_imports = true
