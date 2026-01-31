@@ -143,14 +143,21 @@ class AgentResponse(BaseModel):
 # SEARCH-SPECIFIC Types
 
 class SearchResult(BaseModel):
-    """ A single search result from web search."""
+    """ 
+    SearchResult model for SearchResponse. 
+    A single search result from web search. 
+    title, url, snippet, content?
+    """
     title: str
     url: str
     snippet: str
     content: str | None = None
 
 class SearchResponse(BaseModel):
-    """Response from a web search operation."""
+    """
+    Response from a web search operation.
+    query, results: [SearchResult], total_results
+    """
     query: str
     results: list[SearchResult]
     total_results: int = 0
