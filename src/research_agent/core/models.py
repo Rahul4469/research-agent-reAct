@@ -63,7 +63,7 @@ class ToolDefinition(BaseModel):
     Example:
         age: int = Field(ge=0, le=150, description="Person's age")
         
-    name, description, parameters list[ToolParamter],
+    name, description, parameters list[ToolParamter(name, type, description, required)],
     return to_anthropic_schema() -> dict[str, ANY]    
     """
     name: str = Field(description="Unique identifier for the tool")
