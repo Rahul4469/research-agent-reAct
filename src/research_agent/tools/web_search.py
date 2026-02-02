@@ -329,48 +329,53 @@ class WebSearchTool:
             )
             for i in range(min(num_results, 5))
         ]
-        return SearchResponse(
-            query = query,
-            results = mock_results,
-            total_results = len(mock_results),
-        )
+        # return SearchResponse(
+        #     query = query,
+        #     results = mock_results,
+        #     total_results = len(mock_results),
+        # )
+        return await self.execute_real(query, num_results)
     
     async def execute_real(self, query: str, num_results: int = 5, search_api_key: str | None = None) -> SearchResponse:
         """
-        query, num_results, search_api_key?:none
+        Execute real web search using SerpAPI.
+
+        Args:
+            query: Search query string
+            num_results: Number of results to return
+            search_api_key: Optional API key (falls back to SERP_API_KEY env var)
         """
-        import os 
-        
-        api_key = search_api_key or os.environ.get("BRAVE_API_KEY")
+        import os
+
+        api_key = search_api_key or os.environ.get("SERP_API_KEY")
         if not api_key:
-            raise ValueError("Brave_API_KEY missing/error")
-        
-        # Brave search API endpoint
-        url = "https://api.search.brave.com/res/v1/web/search"
+            raise ValueError("SERP_API_KEY environment variable not set")
+
+        # SerpAPI endpoint
+        url = "https://serpapi.com/search"
         params = {
+            "engine": "google",
             "q": query,
-            "count": num_results
-        }    
-        headers = {
-            "Accept": "application/json",
-            "X-Subscription-Token": api_key,
+            "num": num_results,
+            "api_key": api_key,  # SerpAPI uses api_key as query param
         }
-        
+
         client = await self._client._get_client()
-        response = await client.get(url, params=params, headers=headers)
+        response = await client.get(url, params=params)
         response.raise_for_status()
-        
+
         data = response.json()
-        
+
+        # SerpAPI returns results in "organic_results" array
         results = [
             SearchResult(
                 title=item.get("title", ""),
-                url=item.get("url", ""),
-                snippet=item.get("descrption", ""),                              
-            )    
-            for item in data.get("web", {}).get("results", [])               
+                url=item.get("link", ""),  # SerpAPI uses "link" not "url"
+                snippet=item.get("snippet", ""),
+            )
+            for item in data.get("organic_results", [])[:num_results]
         ]
-        
+
         return SearchResponse(
             query = query,
             results = results,

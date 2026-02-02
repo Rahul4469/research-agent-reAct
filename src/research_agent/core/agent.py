@@ -182,9 +182,9 @@ class ResearchAgent:
            self._parser = ReActParser()
             
            # Build system prompt with tool descriptions
-           tool_descriptions = format_tool_description(self._registry.list_definitions())    
+           tool_descriptions = format_tool_description(self._registry.list_definitions())
            self._system_prompt = REACT_SYSTEM_PROMPT.format(
-               tools_description = tool_descriptions
+               tool_descriptions=tool_descriptions
            ) 
     
     def run(self, query: str) -> AgentResponse:
@@ -206,9 +206,7 @@ class ResearchAgent:
         sources: list[str] = []
         
         if self._verbose:
-            print(f"\n{'='*60}")
             print(f"Query: {query}")
-            print(f"{'='*60}\n")
             
         for iteration in range(self._max_iterations):
             if self._verbose:
@@ -284,7 +282,7 @@ class ResearchAgent:
         """Call the LLM and extract text response."""
         # We use the raw API here without tools since we're doing
         # ReAct-style parsing instead of Claude's native tool use
-        response = self._llm.complete(messages)
+        response = self._llm.complete(messages, system=self._system_prompt)
         
         # Extract text content
         for block in response.get("content", []):
@@ -340,7 +338,7 @@ class AsyncResearchAgent:
         self._verbose = verbose
         self._parser = ReActParser()
         
-        tool_descriptions = format_tool_descriptions(
+        tool_descriptions = format_tool_description(
             self._registry.list_definitions()
         )
         self._system_prompt = REACT_SYSTEM_PROMPT.format(
@@ -360,22 +358,29 @@ class AsyncResearchAgent:
         sources: list[str] = []
         
         if self._verbose:
-            print(f"\n{'='*60}")
             print(f"Query: {query}")
-            print(f"{'='*60}\n")
-        
+            print(f"Available tools: {self._registry.list_names()}")
+
         for iteration in range(self._max_iterations):
             if self._verbose:
                 print(f"\n--- Iteration {iteration + 1} ---")
-            
+
             # Get LLM response (async!)
             response = await self._call_llm(messages)
-            
+
+            if self._verbose:
+                print(f"\n[RAW LLM RESPONSE]:\n{response[:500]}...")
+
             # Parse the response
             parsed = self._parser.parse(response)
-            
+
             if self._verbose:
-                print(f"Thought: {parsed['thought']}")
+                # print(f"Thought: {parsed['thought']}")
+                print(f"\n[PARSED]:")
+                print(f"  Thought: {parsed['thought']}")
+                print(f"  Action: {parsed['action']}")
+                print(f"  Action Input: {parsed['action_input']}")
+                print(f"  Is Complete: {parsed['is_complete']}")
             
             step = ThoughtAction(
                 thought=parsed["thought"] or "",
@@ -396,9 +401,10 @@ class AsyncResearchAgent:
             
             if parsed["action"]:
                 if self._verbose:
-                    print(f"Action: {parsed['action']}")
-                    print(f"Input: {parsed['action_input']}")
-                
+                    # print(f"Action: {parsed['action']}")
+                    #print(f"Input: {parsed['action_input']}")
+                    print(f"\n[EXECUTING TOOL]: {parsed['action']}")
+
                 # Execute tool (async!)
                 observation = await self._execute_tool(
                     parsed["action"],
@@ -428,13 +434,20 @@ class AsyncResearchAgent:
     
     async def _call_llm(self, messages: list[Message]) -> str:
         """Call the LLM asynchronously."""
-        response = await self._llm.complete(messages)
-        
-        for block in response.get("content", []):
-            if block.get("type") == "text":
-                return block.get("text", "")
-        
-        return ""
+        try:
+            response = await self._llm.complete(messages, system=self._system_prompt)
+
+            for block in response.get("content", []):
+                if block.get("type") == "text":
+                    return block.get("text", "")
+
+            return ""
+        except Exception as e:
+            # Handle API errors gracefully
+            error_msg = str(e)
+            if "content filtering" in error_msg.lower():
+                return "Thought: The query triggered a content filter. Let me try a different approach.\nFinal Answer: I apologize, but I cannot process this query due to content restrictions. Please try rephrasing your question."
+            raise
     
     async def _execute_tool(self, tool_name: str, inputs: dict[str, Any]) -> str:
         """Execute a tool asynchronously."""

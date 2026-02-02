@@ -16,7 +16,7 @@ load_dotenv()
 
 DEFAULT_MODEL = "claude-sonnet-4-20250514"
 DEFAULT_MAX_TOKENS = 4096
-DEFAULT_TEMPERATURE = 0.7
+DEFAULT_TEMPERATURE = 0.3  # Lower temperature for more predictable outputs
 
 # Available Claude models (as of 2024)
 CLAUDE_MODELS = {
