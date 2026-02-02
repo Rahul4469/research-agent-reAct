@@ -42,10 +42,10 @@ WEB_SEARCH_TOOL = ToolDefinition(
 
 FETCH_PAGE_TOOL = ToolDefinition(
     name="fetch_page",
-    desciption="""Fetch and extract the main content from a web page.
+    description="""Fetch and extract the main content from a web page.
     Use this when you need to read the full content of a specific URL.
     Returns the page title and main text content.""",
-    paramters=[
+    parameters=[
         ToolParameter(
             name="url",
             type="string",
@@ -111,7 +111,7 @@ class WebClient:
         3. Allows async setup if needed
         """
         if self._client is None:
-            self.client = httpx.AsyncClient(
+            self._client = httpx.AsyncClient(
                 timeout=self._timeout,
                 limits=self._limits,
                 headers=self._headers,
@@ -127,13 +127,13 @@ class WebClient:
             import time
             current_time = time.monotonic()
             time_since_last = current_time - self._last_request_time
-        min_interval = 1.0 / self._rate_limit
-        
-        if time_since_last < min_interval:
-            wait_time = min_interval - time_since_last
-            await asyncio.sleep(wait_time)
-        
-        self._last_request_time = time.monotonic()
+            min_interval = 1.0 / self._rate_limit
+
+            if time_since_last < min_interval:
+                wait_time = min_interval - time_since_last
+                await asyncio.sleep(wait_time)
+
+            self._last_request_time = time.monotonic()
         
     async def get(self, url: str) -> httpx.Response:
         """
@@ -321,13 +321,13 @@ class WebSearchTool:
         # for i in range(min(result_results, 5)):
         #    mock_results.append(SearchResults(...))"""
         mock_results = [
-            SearchResults(
+            SearchResult(
                 title=f"Result {i+1} for: {query}",
                 url=f"https://example.com/results/{i+1}",
                 snippet=f"This is a search result about {query}. "
                         f"It contains relevant information that would help answer the query.",
             )
-            for i in range(min(num_results_results, 5))
+            for i in range(min(num_results, 5))
         ]
         return SearchResponse(
             query = query,

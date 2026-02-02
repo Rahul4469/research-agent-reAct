@@ -72,9 +72,9 @@ def format_tool_description(tools: list[ToolDefinition]) -> str:
             params.append(f"  - {p.name}: {p.description} {req}")
         
         param_str = "\n".join(params) if params else " (no parameters)"
-        description.append(f"### {tools.name}\n{tool.description}\nParameters:\n{param_str}") 
-    
-    return "\n\n".join(descriptions)
+        description.append(f"### {tool.name}\n{tool.description}\nParameters:\n{param_str}")
+
+    return "\n\n".join(description)
 
 # PARSING UTILITIES ///-----------------------------------------
 
@@ -132,7 +132,7 @@ class ReActParser:
             result["action"] = action_match.group(1).strip()
             
         # Extract action input (JSON)
-        input_match - cls.ACTION_INPUT_PATTERN.search(text)
+        input_match = cls.ACTION_INPUT_PATTERN.search(text)
         if input_match:
             try:
                 result["action_input"] = json.loads(input_match.group(1))
@@ -171,7 +171,7 @@ class ResearchAgent:
                 result = execute_tool(parsed.action, parsed.input)
                 messages.append(observation(result))
     """     
-    def __init__(self, llm_client: LLMClient | None = NONE,
+    def __init__(self, llm_client: LLMClient | None = None,
                  registry: ToolRegistry | None = None,
                  max_iterations: int = 10,
                  verbose: bool = False):
@@ -227,47 +227,47 @@ class ResearchAgent:
             step = ThoughtAction(
                 thought=parsed["thought"] or "",
                 action=parsed["action"],
-                actions_input=parsed["actions_input"]
-            )  
-            
+                action_input=parsed["action_input"]
+            )
+
             # Check if we have a final answer
             if parsed["is_complete"]:
                 if self._verbose:
-                    print(f"\nFinal Answer: {parsed['final_answer']}")  
-                
+                    print(f"\nFinal Answer: {parsed['final_answer']}")
+
                 return AgentResponse(
                     answer=parsed["final_answer"] or "",
                     confidence=0.8,
                     sources=sources,
-                    resoning_steps=reasoning_steps,
-                )      
-            
+                    reasoning_steps=reasoning_steps,
+                )
+
             # Execute action if present
-            if parsed["actions"]:
+            if parsed["action"]:
                 if self._verbose:
                     print(f"Action: {parsed['action']}")
                     print(f"Input: {parsed['action_input']}")
-                
+
                 observation = self._execute_tool(
-                    parsed["actions"],
+                    parsed["action"],
                     parsed["action_input"] or {},
                 )
-                
+
                 step.observation = observation
-                
+
                 if self._verbose:
-                    print(f"Observation: {observation[:200]}...")    
-                
+                    print(f"Observation: {observation[:200]}...")
+
                 # Add to messages for next iteration
                 messages.append(Message(role=Role.ASSISTANT, content=response))
                 messages.append(Message(
-                    role=Role.USER, 
+                    role=Role.USER,
                     content=f"Observation: {observation}"
-                ))   
-                
+                ))
+
                 # Track sources from search results
-                if "url" in str(parsed["actions_input"]):
-                      sources.append(str(parsed["action_input"].get("url", "")))
+                if "url" in str(parsed["action_input"]):
+                    sources.append(str(parsed["action_input"].get("url", "")))
             
             reasoning_steps.append(step)          
         
@@ -459,7 +459,7 @@ class AsyncResearchAgent:
               
 def create_agent(api_key: str | None = None,
                 verbose: bool = False,
-                async_mode: bool = Flase,) -> ResearchAgent | AsyncResearchAgent:
+                async_mode: bool = False,) -> ResearchAgent | AsyncResearchAgent:
     
     registry = create_default_registry()
     

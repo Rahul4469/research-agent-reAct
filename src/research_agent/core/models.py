@@ -73,6 +73,7 @@ class ToolDefinition(BaseModel):
     def to_anthropic_schema(self) -> dict[str, Any]:
         """
         Convert to Anthropic's tool format.
+        will be used by llm client
         """
         properties = {}
         required = []
@@ -116,15 +117,15 @@ class AgentResponse(BaseModel):
     If you try AgentResponse(confidence=1.5), 
     Pydantic raises ValidationError!
     
-    answer, confidence, source, resoning_steps, num_steps()
+    answer, confidence, sources, reasoning_steps, num_steps()
     """
     answer: str
     confidence: float = Field(
-        ge=0, 
-        le=1, 
+        ge=0,
+        le=1,
         description="How confident the agent is (0-1)"
     )
-    source: list[str] = Field(
+    sources: list[str] = Field(
         default_factory=list,  # Empty list if not provided
         description="URLs or references used"
     )
