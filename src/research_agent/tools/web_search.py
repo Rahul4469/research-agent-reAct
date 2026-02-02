@@ -317,24 +317,30 @@ class WebSearchTool:
         self.definition = WEB_SEARCH_TOOL
     
     async def execute(self, query: str, num_results: int = 5,) -> SearchResponse:
-        # mock_results = []
-        # for i in range(min(result_results, 5)):
-        #    mock_results.append(SearchResults(...))"""
-        mock_results = [
-            SearchResult(
-                title=f"Result {i+1} for: {query}",
-                url=f"https://example.com/results/{i+1}",
-                snippet=f"This is a search result about {query}. "
-                        f"It contains relevant information that would help answer the query.",
+        """Execute web search - tries real API first, falls back to mock."""
+        import os
+
+        # Check if SERP_API_KEY is available
+        if os.environ.get("SERP_API_KEY"):
+            print(f"[WEB_SEARCH] Calling SerpAPI for: {query}")
+            return await self.execute_real(query, num_results)
+        else:
+            print(f"[WEB_SEARCH] No SERP_API_KEY - using mock results for: {query}")
+            # Return mock results for testing
+            mock_results = [
+                SearchResult(
+                    title=f"Result {i+1} for: {query}",
+                    url=f"https://example.com/results/{i+1}",
+                    snippet=f"This is a search result about {query}. "
+                            f"It contains relevant information that would help answer the query.",
+                )
+                for i in range(min(num_results, 5))
+            ]
+            return SearchResponse(
+                query=query,
+                results=mock_results,
+                total_results=len(mock_results),
             )
-            for i in range(min(num_results, 5))
-        ]
-        # return SearchResponse(
-        #     query = query,
-        #     results = mock_results,
-        #     total_results = len(mock_results),
-        # )
-        return await self.execute_real(query, num_results)
     
     async def execute_real(self, query: str, num_results: int = 5, search_api_key: str | None = None) -> SearchResponse:
         """

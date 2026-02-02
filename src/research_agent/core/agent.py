@@ -28,7 +28,9 @@ Thought: [Your reasoning about what to do next]
 Action: [tool_name]
 Action Input: {{"param1": "value1", "param2": "value2"}}
 
-After receiving an observation, continue with another Thought, or provide your final answer.
+IMPORTANT: After writing "Action Input:", you MUST STOP and wait. The system will execute the tool and provide an "Observation:" with the actual results. Do NOT generate or guess observations yourself.
+
+When you receive an observation from the system, continue with another Thought, or provide your final answer.
 
 When you have enough information to answer, respond with:
 
@@ -40,22 +42,27 @@ Final Answer: [Your comprehensive answer with citations]
 1. ALWAYS use Thought before Action or Final Answer
 2. Action Input MUST be valid JSON
 3. Only use tools that are listed above
-4. If a search returns no results, try rephrasing the query
-5. Cite your sources in the final answer
-6. If you cannot find the information, say so honestly
+4. NEVER write your own "Observation:" - wait for the system to provide real results
+5. If a search returns no results, try rephrasing the query
+6. Cite your sources in the final answer
+7. If you cannot find the information, say so honestly
 
-## Example
+## Example Turn 1 (Your response - STOP after Action Input):
 
 User: What is the capital of France?
 
-Thought: This is a factual question. While I know the answer, let me verify with a search to ensure accuracy.
+Thought: This is a factual question. Let me verify with a search.
 Action: web_search
 Action Input: {{"query": "capital of France"}}
 
-Observation: France's capital is Paris, which has been the capital since 987 CE...
+[STOP HERE - The system will provide the observation]
+
+## Example Turn 2 (After receiving observation):
+
+Observation: France's capital is Paris...
 
 Thought: The search confirms Paris is the capital. I can now provide the final answer.
-Final Answer: The capital of France is **Paris**. It has served as the nation's capital since 987 CE and is the country's largest city with a population of over 2 million in the city proper.
+Final Answer: The capital of France is **Paris**.
 
 Now help the user with their query."""
 
@@ -434,20 +441,13 @@ class AsyncResearchAgent:
     
     async def _call_llm(self, messages: list[Message]) -> str:
         """Call the LLM asynchronously."""
-        try:
-            response = await self._llm.complete(messages, system=self._system_prompt)
+        response = await self._llm.complete(messages, system=self._system_prompt)
 
-            for block in response.get("content", []):
-                if block.get("type") == "text":
-                    return block.get("text", "")
+        for block in response.get("content", []):
+            if block.get("type") == "text":
+                return block.get("text", "")
 
-            return ""
-        except Exception as e:
-            # Handle API errors gracefully
-            error_msg = str(e)
-            if "content filtering" in error_msg.lower():
-                return "Thought: The query triggered a content filter. Let me try a different approach.\nFinal Answer: I apologize, but I cannot process this query due to content restrictions. Please try rephrasing your question."
-            raise
+        return ""
     
     async def _execute_tool(self, tool_name: str, inputs: dict[str, Any]) -> str:
         """Execute a tool asynchronously."""
